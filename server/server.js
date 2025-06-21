@@ -3,16 +3,27 @@ import cors from 'cors';
 import db from './config/db.js';
 import routes from './routes/index.js';
 import { execSync } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const PORT = process.env.PORT || 3000;
 const app = express();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(cors());
 app.use(express.json());
+
+// API
 app.use('/api', routes);
 app.get('/ping', (_, res) => res.send('pong'));
 
-// Автоматическое завершение процесса, занимающего порт
+// 👉 Подключаем frontend
+app.use(express.static(path.join(__dirname, '../client/dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
+
+// Убиваем процесс, занимающий порт
 function killPort(port) {
   try {
     const stdout = execSync(`netstat -aon | findstr :${port}`).toString();
@@ -28,11 +39,11 @@ function killPort(port) {
       }
     });
   } catch {
-    // порт не занят — ничего не делаем
+    // Порт не занят — ок
   }
 }
 
-// Убиваем, если занят, и запускаем сервер с задержкой
+// ⏳ Задержка перед запуском
 killPort(PORT);
 setTimeout(() => {
   app.listen(PORT, () => {
