@@ -5,6 +5,8 @@ import routes from './routes/index.js';
 import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 const app = express();
