@@ -41,6 +41,7 @@ export const submitRequest = (req, res) => {
         <p><strong>Сообщение:</strong><br>${message}</p>
       `,
     };
+console.log("📨 Пытаемся отправить письмо...");
 
     transporter.sendMail(mailOptions, (error, info) => {
   if (error) {
