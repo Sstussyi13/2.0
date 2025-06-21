@@ -7,7 +7,7 @@ export default function ContentEditor() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:3000/api/content/price_table")
+      .get("/api/content/price_table")
       .then((res) => setData(res.data))
       .catch((err) => console.error("Ошибка получения контента:", err));
   }, []);
@@ -19,7 +19,7 @@ export default function ContentEditor() {
   const saveContent = async () => {
     setSaving(true);
     try {
-      await axios.put("http://localhost:3000/api/content/price_table", {
+      await axios.put("/api/content/price_table", {
         content: data.content,
       });
       alert("Сохранено!");
