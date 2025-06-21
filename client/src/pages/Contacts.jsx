@@ -24,8 +24,6 @@ export default function Contacts() {
     phone: "",
     message: "",
   });
- 
-
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -61,7 +59,7 @@ export default function Contacts() {
     if (!validate()) return;
 
     try {
-      await axios.post("http://localhost:3000/api/requests", form);
+      await axios.post("/api/requests", form); // заменён на относительный путь
       setSubmitted(true);
     } catch (err) {
       console.error("Ошибка при отправке заявки:", err);
@@ -110,13 +108,15 @@ export default function Contacts() {
                     mask="+7 (999) 999-99-99"
                     value={form.phone}
                     onChange={handleChange}
-                    maskChar="_"
+                    maskChar={null}
                     name="phone"
                   >
                     {(inputProps) => (
                       <input
                         {...inputProps}
                         type="tel"
+                        inputMode="numeric"
+                        pattern="\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}"
                         placeholder="+7 (999) 123-45-67"
                         className={`w-full px-4 py-2 pl-10 border rounded-md bg-white text-primary focus:outline-none focus:ring text-sm ${
                           errors.phone ? "border-red-500" : "focus:ring-primary/30"
@@ -209,7 +209,7 @@ export default function Contacts() {
           <div className="w-full h-64 sm:h-72 rounded-md overflow-hidden border shadow-sm">
             <iframe
               title="Яндекс Карта — Москва, Лечебная 5"
-              src="https://yandex.ru/map-widget/v1/?um=constructor%3Ab8c3f7b7559c7d932f69ff633a54504a163e24356c7b95df9587aba328f67d3c&amp;source=constructor"
+              src="https://yandex.ru/map-widget/v1/?um=constructor%3Ab8c3f7b7559c7d932f69ff633a54504a163e24356c7b95df9587aba328f67d3c&source=constructor"
               width="100%"
               height="100%"
               frameBorder="0"
