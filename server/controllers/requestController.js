@@ -1,4 +1,6 @@
 import db from '../config/db.js';
+import { sendEmail } from '../mailer.js';
+import nodemailer from "nodemailer";
 
 export const submitRequest = async (req, res, next) => {
   try {
@@ -15,6 +17,13 @@ export const submitRequest = async (req, res, next) => {
        VALUES (?, ?, ?, ?)`,
       [full_name, phone, service_type || '', message || '']
     );
+
+    try {
+      await sendEmail({ full_name, phone, service_type, message });
+      console.log('✅ Письмо успешно отправлено');
+    } catch (emailErr) {
+      console.error('❌ Ошибка при отправке письма:', emailErr.message);
+    }
 
     res.status(201).json({ message: 'Заявка успешно отправлена и сохранена' });
   } catch (err) {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import InputMask from "react-input-mask";
 import {
   Mail,
   Phone,
@@ -18,12 +19,44 @@ export default function Contacts() {
     message: "",
   });
 
+  const [errors, setErrors] = useState({
+    full_name: "",
+    phone: "",
+    message: "",
+  });
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: "" });
+  };
+
+  const validate = () => {
+    let isValid = true;
+    const newErrors = { full_name: "", phone: "", message: "" };
+    const cleanedPhone = form.phone.replace(/\D/g, "");
+
+    if (!form.full_name.trim()) {
+      newErrors.full_name = "Введите имя";
+      isValid = false;
+    }
+
+    if (cleanedPhone.length !== 11 || !cleanedPhone.startsWith("7")) {
+      newErrors.phone = "Введите корректный номер телефона в формате +7 (XXX) XXX-XX-XX";
+      isValid = false;
+    }
+
+    if (!form.message.trim()) {
+      newErrors.message = "Введите сообщение";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validate()) return;
 
     try {
       await axios.post("http://localhost:3000/api/requests", form);
@@ -47,38 +80,57 @@ export default function Contacts() {
           <div className="bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow hover:shadow-md transition-all">
             {!submitted ? (
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Имя */}
                 <div className="relative">
                   <label className="block text-sm font-medium mb-1">Имя</label>
                   <input
                     name="full_name"
                     type="text"
-                    required
                     value={form.full_name}
                     onChange={handleChange}
                     placeholder="Ваше имя"
-                    className="w-full px-4 py-2 pl-10 border rounded-md bg-white text-primary focus:outline-none focus:ring focus:ring-primary/30 text-sm"
+                    className={`w-full px-4 py-2 pl-10 border rounded-md bg-white text-primary focus:outline-none focus:ring text-sm ${
+                      errors.full_name ? "border-red-500" : "focus:ring-primary/30"
+                    }`}
                   />
                   <span className="absolute left-3 top-[38px] text-muted">
                     <MessageSquare size={16} />
                   </span>
+                  {errors.full_name && (
+                    <p className="text-red-500 text-xs mt-1">{errors.full_name}</p>
+                  )}
                 </div>
 
+                {/* Телефон */}
                 <div className="relative">
                   <label className="block text-sm font-medium mb-1">Телефон</label>
-                  <input
-                    name="phone"
-                    type="tel"
-                    required
+                  <InputMask
+                    mask="+7 (999) 999-99-99"
                     value={form.phone}
                     onChange={handleChange}
-                    placeholder="+7 (999) 123-45-67"
-                    className="w-full px-4 py-2 pl-10 border rounded-md bg-white text-primary focus:outline-none focus:ring focus:ring-primary/30 text-sm"
-                  />
+                    maskChar="_"
+                    name="phone"
+                  >
+                    {(inputProps) => (
+                      <input
+                        {...inputProps}
+                        type="tel"
+                        placeholder="+7 (999) 123-45-67"
+                        className={`w-full px-4 py-2 pl-10 border rounded-md bg-white text-primary focus:outline-none focus:ring text-sm ${
+                          errors.phone ? "border-red-500" : "focus:ring-primary/30"
+                        }`}
+                      />
+                    )}
+                  </InputMask>
                   <span className="absolute left-3 top-[38px] text-muted">
                     <Phone size={16} />
                   </span>
+                  {errors.phone && (
+                    <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                  )}
                 </div>
 
+                {/* Сообщение */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Сообщение</label>
                   <textarea
@@ -87,8 +139,13 @@ export default function Contacts() {
                     value={form.message}
                     onChange={handleChange}
                     placeholder="Расскажите, что вам нужно — мы предложим решение."
-                    className="w-full px-4 py-3 border rounded-md bg-white text-primary resize-none focus:outline-none focus:ring focus:ring-primary/30 text-sm"
+                    className={`w-full px-4 py-3 border rounded-md bg-white text-primary resize-none focus:outline-none focus:ring text-sm ${
+                      errors.message ? "border-red-500" : "focus:ring-primary/30"
+                    }`}
                   ></textarea>
+                  {errors.message && (
+                    <p className="text-red-500 text-xs mt-1">{errors.message}</p>
+                  )}
                 </div>
 
                 <button
