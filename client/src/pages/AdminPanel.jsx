@@ -1,146 +1,111 @@
-// Адаптированный AdminPanel без авторизации
-// Всё сразу отображается, данные подгружаются автоматом
-
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Pencil, Trash, Save, Upload, Plus } from "lucide-react";
-import {
-  ClipboardCheck,
-  TrafficCone,
-  Construction,
-  Ruler,
-  FileText,
-  FileSearch,
-  BookOpen,
-} from "lucide-react";
 
-const ICONS = {
-  ClipboardCheck,
-  TrafficCone,
-  Construction,
-  Ruler,
-  FileText,
-  FileSearch,
-  BookOpen,
-};
+import CardsEditor from "../components/CardsEditor";
+import ServiceEditor from "../components/services/ServiceEditor"; // ✅
+import StepEditor from "../components/steps/StepEditor"; // ✅
+import RequestFormEditor from "../components/request/RequestFormEditor";
+import PriceEditor from "../components/price/PriceEditor"; // ✅ Новый редактор для таблицы цен
+
+const SECTIONS = [
+  { key: "cards", label: "Карточки" },
+  { key: "request_form", label: "Форма заявки" },
+  { key: "services", label: "Услуги" },
+  { key: "steps", label: "Этапы" },
+  { key: "price_table", label: "Цены" },
+];
 
 export default function AdminPanel() {
-  const [tab, setTab] = useState("requests");
-  const [requests, setRequests] = useState([]);
-  const [content, setContent] = useState({});
-  const [editId, setEditId] = useState(null);
-  const [editedRequest, setEditedRequest] = useState({});
+  const [activeTab, setActiveTab] = useState("cards");
+  const [data, setData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000/api";
-
-  const fetchRequests = async () => {
+  const loadContent = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/requests`);
-      setRequests(res.data);
+      const res = await axios.get("/api/content/all");
+      const entries = {};
+      res.data.forEach((item) => {
+        try {
+          entries[item.key] = JSON.parse(item.value);
+        } catch {
+          entries[item.key] = item.value;
+        }
+      });
+      setData(entries);
     } catch (err) {
-      console.error("Ошибка при получении заявок:", err);
+      console.error("Ошибка загрузки контента:", err);
+      setError("Не удалось загрузить данные");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchContent = async () => {
+  const saveContent = async (key, value) => {
     try {
-      const res = await axios.get(`${API_BASE}/content/all`);
-      const data = res.data.reduce((acc, { key, value }) => {
-        acc[key] = JSON.parse(value);
-        return acc;
-      }, {});
-      setContent(data);
+      await axios.put(`/api/content/${key}`, { value: JSON.stringify(value) });
+      setData((prev) => ({ ...prev, [key]: value }));
     } catch (err) {
-      console.error("Ошибка при загрузке контента:", err);
+      console.error(`Ошибка сохранения ${key}:`, err);
+      alert(`Ошибка сохранения ${key}`);
     }
   };
 
   useEffect(() => {
-    fetchRequests();
-    fetchContent();
+    loadContent();
   }, []);
 
-  const startEdit = (r) => {
-    setEditId(r.id);
-    setEditedRequest({ ...r });
-  };
-
-  const saveEdit = async () => {
-    try {
-      await axios.put(`${API_BASE}/requests/${editId}`, {
-        service_type: editedRequest.service_type,
-        message: editedRequest.message,
-      });
-      setEditId(null);
-      fetchRequests();
-    } catch (err) {
-      console.error("Ошибка при обновлении заявки:", err);
-    }
-  };
-
-  const deleteRequest = async (id) => {
-    if (!window.confirm("Удалить эту заявку?")) return;
-    try {
-      await axios.delete(`${API_BASE}/requests/${id}`);
-      fetchRequests();
-    } catch (err) {
-      console.error("Ошибка при удалении заявки:", err);
-    }
-  };
-
-  const updateContent = async (key, value) => {
-    try {
-      await axios.put(`${API_BASE}/content/${key}`, {
-        value: JSON.stringify(value),
-      });
-      fetchContent();
-    } catch (err) {
-      console.error("Ошибка при обновлении контента:", err);
-    }
-  };
-
-  const handleFileUpload = async (e, idx) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      const res = await axios.post(`${API_BASE}/upload`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      const imageUrl = `${API_BASE}/uploads/${res.data.filename}`;
-      const updated = [...content.cards];
-      updated[idx].image = imageUrl;
-      setContent({ ...content, cards: updated });
-    } catch (err) {
-      console.error("Ошибка при загрузке изображения:", err);
-    }
-  };
-
-  // 👇 Остальная часть интерфейса (вкладки и отрисовка) остаётся без изменений
-  // Просто убрана авторизация
+  if (loading) return <div className="p-4 text-gray-500">Загрузка...</div>;
+  if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Админ-панель (без входа)</h1>
-      </div>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Админ-панель</h1>
 
-      <div className="flex flex-wrap gap-3 mb-6">
-        {["requests", "cards", "services", "steps", "price_table"].map((key) => (
+      {/* Tabs */}
+      <div className="flex space-x-2 border-b mb-4">
+        {SECTIONS.map((section) => (
           <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`px-4 py-2 rounded ${tab === key ? "bg-blue-600 text-white" : "bg-white border"}`}
+            key={section.key}
+            onClick={() => setActiveTab(section.key)}
+            className={`px-4 py-2 border-b-2 ${
+              activeTab === section.key
+                ? "border-blue-500 font-semibold"
+                : "border-transparent text-gray-500 hover:text-black"
+            }`}
           >
-            {key}
+            {section.label}
           </button>
         ))}
       </div>
 
-      {/* Здесь отрисовка вкладок — вставляется из оригинального кода */}
+      {/* Editor per tab */}
+      {activeTab === "cards" && <CardsEditor />}      
+      {activeTab === "services" && <ServiceEditor />} 
+      {activeTab === "request_form" && <RequestFormEditor />}
+     
+      {activeTab === "steps" && (
+        <StepEditor
+          steps={data["steps"] || []}
+          onSave={(value) => saveContent("steps", value)}
+        />
+      )}
+
+      {activeTab === "price_table" && (
+        <PriceEditor
+          prices={data["price_table"] || []}
+          onSave={(value) => saveContent("price_table", value)}
+        />
+      )}
+
+      {activeTab === "contacts" && (
+        <ContentEditor
+          key={activeTab}
+          sectionKey={activeTab}
+          content={data[activeTab]}
+          onSave={(value) => saveContent(activeTab, value)}
+        />
+      )}
     </div>
   );
 }

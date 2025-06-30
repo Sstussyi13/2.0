@@ -1,19 +1,32 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html')
-      }
-    }
-  },
-  server: {
-    proxy: {
-      '/api': 'http://localhost:3000',
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
     },
   },
-})
+  envDir: './',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'esbuild',
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+      },
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
+  server: {
+    proxy: mode === 'development' ? {
+      '/api': 'http://localhost:3000',
+    } : undefined,
+  },
+}));

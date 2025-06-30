@@ -5,69 +5,83 @@ import "aos/dist/aos.css";
 import Lenis from "@studio-freight/lenis";
 
 import Layout from "./components/Layout";
-import Home from "./pages/Home";
-import Services from "./pages/Services";
-import Steps from "./pages/Steps";
-import Contacts from "./pages/Contacts";
+import PrivateRoute from "./components/PrivateRoute";
+
+import AdminPanel from "./pages/AdminPanel.jsx";
+import AdminLogin from "./pages/LoginPage.jsx";
+
+import Home from "./pages/HomePage.jsx";
+import Services from "./pages/ServicesPage.jsx";
+import Steps from "./pages/StepsPage.jsx";
+import Contacts from "./pages/Contacts.jsx";
+import NotFound from "./pages/NotFound.jsx"; // Страница 404
 
 export default function App() {
   const location = useLocation();
-  const lenisRef = useRef(null); // 💡 храним Lenis
+  const lenisRef = useRef(null);
 
-  // 🔁 Инициализация один раз
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
 
-    const lenis = new Lenis({
-      smooth: true,
-      lerp: 0.1,
-    });
-
+    const lenis = new Lenis({ smooth: true, lerp: 0.1 });
     lenisRef.current = lenis;
 
-    function raf(time) {
+    let frameId;
+    const raf = (time) => {
       lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
+      frameId = requestAnimationFrame(raf);
+    };
+    frameId = requestAnimationFrame(raf);
 
-    requestAnimationFrame(raf);
-
-    // Обработка якорей
     const links = document.querySelectorAll('a[href^="#"]');
-    links.forEach((link) => {
-      link.addEventListener("click", (e) => {
-        const target = document.querySelector(link.getAttribute("href"));
-        if (target) {
-          e.preventDefault();
-          lenis.scrollTo(target, {
-            offset: 0,
-            duration: 1.2,
-            easing: (t) => 1 - Math.pow(1 - t, 4),
-          });
-        }
-      });
-    });
+    const handleAnchorClick = (e) => {
+      const href = e.currentTarget.getAttribute("href");
+      const target = document.querySelector(href);
+      if (target) {
+        e.preventDefault();
+        lenis.scrollTo(target, {
+          offset: 0,
+          duration: 1.2,
+          easing: (t) => 1 - Math.pow(1 - t, 4),
+        });
+      }
+    };
+    links.forEach((link) => link.addEventListener("click", handleAnchorClick));
 
     return () => {
+      cancelAnimationFrame(frameId);
       lenis.destroy();
+      links.forEach((link) => link.removeEventListener("click", handleAnchorClick));
     };
   }, []);
 
-  // 💥 Скролл наверх при смене route
   useEffect(() => {
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(0, { immediate: true });
-    }
+    lenisRef.current?.scrollTo(0, { immediate: true });
   }, [location.pathname]);
 
   return (
-    <Layout>
-      <Routes>
+    <Routes>
+      {/* Публичная часть */}
+      <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/services" element={<Services />} />
         <Route path="/steps" element={<Steps />} />
         <Route path="/contacts" element={<Contacts />} />
-      </Routes>
-    </Layout>
+      </Route>
+
+      {/* Админка */}
+      <Route path="/super/login" element={<AdminLogin />} />
+      <Route
+        path="/super"
+        element={
+          <PrivateRoute>
+            <AdminPanel />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Страница 404 */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }

@@ -1,13 +1,11 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import Lenis from "@studio-freight/lenis";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const lenis = new Lenis();
-    lenis.scrollTo(0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [pathname]);
 
   return null;
